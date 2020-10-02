@@ -12,6 +12,7 @@ class Player { // Making the player
         this.scrollY = 0;
         this.dir = "down";
         this.frame = 0;
+        this.health = 100;
 
     } collision(xPos, yPos, data) {
 

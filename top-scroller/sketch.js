@@ -1,6 +1,7 @@
 var canvas_width = 1000, canvas_height = 700; // Defining width and height of canvas
 
 var stars = []
+var sinWave = 0;
 
 function setup() { // Setting up the game
 
@@ -9,6 +10,7 @@ function setup() { // Setting up the game
     noStroke() // Don't draw a border
 
     textSize(15); // SETTING UP TEXT
+    textStyle(BOLD);
     textAlign(CENTER);
 
     for(i=0;i<100;i++) {
@@ -16,11 +18,14 @@ function setup() { // Setting up the game
         row.push(random(1000), random(1000), random(-30)); // Making starfield
         stars.push(row);
     }
+
+    pause = 10; // Making sure that when you stop, you stop fOr rEalZ
 } ;
 
 function preload() { // Preloading assets
     tile = loadImage("assets/tile.png");
     orbit = loadSound("assets/orbit.mp3");
+    web = loadImage("assets/web.png");
 
     down_idle = loadImage("assets/front_idle.png");
     down_1 = loadImage("assets/front_1.png");
@@ -38,7 +43,9 @@ function preload() { // Preloading assets
     right_1 = loadImage("assets/right_1.png");
     right_2 = loadImage("assets/right_2.png");
 
+    slime = loadImage("assets/slime.png");
 }
+
 
 function toggleWalk() { // Toggling the walk animation
     if (playerObj.frame == 0) {
@@ -101,7 +108,6 @@ function starryBackground() { // Creating a nice starry background
     for(i=0;i<stars.length;i++) {
         rect(((playerObj.x/stars[i][2])+stars[i][0]),((playerObj.y/stars[i][2])+stars[i][1]), 4, 4); // Oof
     }
-    fill(255);
 }
 
 function infiniteTiles() { // Draw infinite tiles
@@ -115,41 +121,76 @@ function infiniteTiles() { // Draw infinite tiles
     }
 }
 
+function tileFloor() { // N I C E
+    background(255);
+    fancyX = (floor((playerObj.x)/30)*30)-playerObj.x // Making a nice fancy x for use in scrolling
+    fancyY = (floor((playerObj.y)/30)*30)-playerObj.y // Same thing here
+    for(i=0;i<canvas_width;i+= 30) {
+        for(j=0;j<canvas_height;j+= 30) {
+            noStroke();
+            fill(200);
+            ellipse(i+fancyX, j+fancyY, 5)
+        }
+    }
+}
+
 function draw() { // Drawing the graphics
 
     // ========================================
 
     // DRAW
 
+    sinWave += 0.1
+
     fill(255); // WHITE
-    starryBackground(); // BG
-    infiniteTiles() // Tiles
+    // starryBackground(); // BG
+    // infiniteTiles() // Tiles
+
+    tileFloor()
 
     for (i=0;i<gameData.length;i++) { // For gamedata.length
         gameDataSelection = gameData[i]; // Just a convinience
+
         if (gameDataSelection["texture"] == "test") { // If this is of texture 'test'
             rect(gameDataSelection["x"]-playerObj.scrollX, gameDataSelection["y"]-playerObj.scrollY, gameDataSelection["width"], gameDataSelection["height"]) // Draw object
 
-        } else if (gameDataSelection["texture"] == "tile") { // If this is of texture 'tile'
+        } else if (gameDataSelection.texture == "slime") {
+                if(gameDataSelection.awake == true){ // Drawing a "!"
+                    textSize(25);
+                    text("!", gameDataSelection["x"]-playerObj.scrollX+gameDataSelection.width/2, gameDataSelection["y"]-playerObj.scrollY)
+                    textSize(15);
+                }
+                image(slime, gameDataSelection["x"]-playerObj.scrollX, gameDataSelection["y"]-playerObj.scrollY, gameDataSelection["width"], gameDataSelection["height"])
+        }
+
+        else if (gameDataSelection["texture"] == "tile") { // If this is of texture 'tile'
         image(tile, gameDataSelection["x"]-playerObj.scrollX, gameDataSelection["y"]-playerObj.scrollY, gameDataSelection["width"], gameDataSelection["height"]);
         }
     };
 
     // drawSprite(playerObj.dir, playerObj.frame, playerObj.x, playerObj.y, playerObj.width, playerObj.height); // Drawing you
 
-    for (i=0;i<players.length;i++) {
-        // if (players[i].name != playerName) { // If it isn't you
-            drawSprite(players[i].dir, players[i].frame, players[i].x, players[i].y, playerObj.width, playerObj.height); // Drawing player            
+    for (omg=0;omg<players.length;omg++) {
+        currentPlayer = players[omg]
+        newMg = omg;
+        // if(player.name == playerName) {
+        //     var playerLoc = i;
+        // }
+        drawSprite(currentPlayer.dir, currentPlayer.frame, currentPlayer.x, currentPlayer.y, 40, 40); // Drawing player
+            console.log(currentPlayer.x, currentPlayer.y)  
             fill(255);
-            text(players[i].name, players[i].x-playerObj.scrollX+(playerObj.width/2),players[i].y-playerObj.scrollY-5); // Draw name
+            text(currentPlayer.name, currentPlayer.x-currentPlayer.scrollX+(currentPlayer.width/2)+5,currentPlayer.y-currentPlayer.scrollY-5); // Draw name
         // }
 
-            if(players[i].name == playerName) {
-                playerObj.x = players[i].x;
-                playerObj.y = players[i].y;
-                console.log(players[i])
-            }
     }
+
+    fill(0, 255, 0);
+    rect(20, 20, playerObj.health, 30);
+    fill(200);
+    rect(20+playerObj.health, 20, 100-playerObj.health, 30);
+
+        fill(255, 0, 0, 200-((playerObj.health*5)+(Math.sin(sinWave)*10))); // The fourth parameter is the "alpha," how transparent the following shapes are
+        rect(0, 0, canvas_width, canvas_height);
 
     playSoundtrack();
 
@@ -157,68 +198,42 @@ function draw() { // Drawing the graphics
 
     // KEYBOARD INPUT
 
+    bufferSpeed = 10;
+
     if (keyIsDown(LEFT_ARROW)) { // Left
         playerObj.dir = "left";
         sendData(-1, 0)
+        players[newMg].x -= bufferSpeed;
+        pause = 0;
     }
 
     if (keyIsDown(RIGHT_ARROW)) { // Right
         playerObj.dir = "right";
         sendData(1, 0)
+        players[newMg].x += bufferSpeed;
+        pause = 0;
     }
 
     if (keyIsDown(UP_ARROW)) { // Up
         playerObj.dir = "up";
         sendData(0, -1)
+        players[newMg].y -= bufferSpeed;
+        pause = 0;
     }
 
     if (keyIsDown(DOWN_ARROW)) { // Down
         playerObj.dir = "down";
         sendData(0, 1)
-    };
+        players[newMg].y += bufferSpeed;
+        pause = 0;
+    }
 
-    // ========================================
-
-    // COLLISION HANDLING
-
-    // temporaryPlayers = []
-    // for (i=0;i<players.length;i++) { // Making a temporary list for collision detection
-    //     if (players[i].name != playerName) { // If it isn't you
-
-    //     row = {
-    //         "x": players[i].x,
-    //         "y": players[i].y,
-    //         "width": playerObj.width,
-    //         "height": playerObj.height,
-    //         "texture": "tempPlayer",
-    //         "collision": true,
-    //         "dir": playerObj.dir,
-    //         "frame": playerObj.frame
-    //     }
-
-    //     temporaryPlayers.push(row)
-    // };
-    // }
-
-    // if (playerObj.collision(playerObj.x+playerObj.horizontalVelocity, playerObj.y+playerObj.verticalVelocity, temporaryPlayers) == 0) { // If there isn't any collision because of the players
-
-    //     if (playerObj.collision(playerObj.x+playerObj.horizontalVelocity, playerObj.y+playerObj.verticalVelocity, gameData).length == 0) { // Checking if the x + velocity && y + velocity is a - okay
-
-    //         if (playerObj.horizontalVelocity != 0 || playerObj.verticalVelocity != 0) { // If there's a change in velocity
-    //             sendData(); // Sending your data
-    //             toggleWalk(); // Changing animation
-    //         } else { // If you're idle
-    //             if (playerObj.frame != 0) {
-    //                 playerObj.frame = 0; // Set state to idle
-    //                 sendData(); // Tell everyone you're an idle boi
-    //             }
-    //         }
-    
-    //         playerObj.x += playerObj.horizontalVelocity; // Making the changes
-    //         playerObj.y += playerObj.verticalVelocity;
-    
-    //     };
-    // }
+    else {
+        pause ++;
+        if(pause>10) {
+            sendData(0, 0);
+        }
+    }
 
     playerObj.scrollX = (playerObj.x - ((canvas_width/2)-(playerObj.width/2))) // Adjusting for scrolling
     playerObj.scrollY = (playerObj.y - ((canvas_height/2)-(playerObj.height/2)));
